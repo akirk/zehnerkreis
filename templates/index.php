@@ -10,8 +10,8 @@ if ( ! defined( 'DONOTCACHEPAGE' ) ) {
     define( 'DONOTCACHEPAGE', true );
 }
 
-wp_app_enqueue_style( 'zehnerkreis', \Zehnerkreis\App::asset_url( 'zehnerkreis.css' ), [], \Zehnerkreis\App::asset_version( 'zehnerkreis.css' ) );
-wp_app_enqueue_script( 'zehnerkreis', \Zehnerkreis\App::asset_url( 'zehnerkreis.js' ), [], \Zehnerkreis\App::asset_version( 'zehnerkreis.js' ), true );
+wp_app_enqueue_style( 'zehnerkreis', \Zehnerkreis\App::asset_url( 'zehnerkreis.css' ), [], \Zehnerkreis\App::asset_version( 'zehnerkreis.css' ), 'zehnerkreis' );
+wp_app_enqueue_script( 'zehnerkreis', \Zehnerkreis\App::asset_url( 'zehnerkreis.js' ), [], \Zehnerkreis\App::asset_version( 'zehnerkreis.js' ), true, 'zehnerkreis' );
 ?>
 <!DOCTYPE html>
 <html <?php wp_app_language_attributes(); ?>>
