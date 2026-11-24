@@ -1,0 +1,80 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wordpress:
+    name: Real browser scoring regressions
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: wordpress
+          MYSQL_DATABASE: app_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --password=wordpress"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, intl, gd
+          tools: composer
+          coverage: none
+      - name: Install WP-CLI in runner temporary directory
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp"
+          chmod +x "$RUNNER_TEMP/wp"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/wp" --info
+      - run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+      - name: Prepare runner-local WordPress
+        env:
+          WP_PATH: ${{ runner.temp }}/wordpress
+        run: |
+          wp core download --path="$WP_PATH"
+          wp config create --path="$WP_PATH" --dbname=app_tests --dbuser=root --dbpass=wordpress --dbhost=127.0.0.1
+          wp core install --path="$WP_PATH" --url=http://zehnerkreis.test --title='Zehnerkreis tests' --admin_user=admin --admin_password=ci-admin-password --admin_email=admin@example.invalid --skip-email
+          cp -a "$GITHUB_WORKSPACE" "$WP_PATH/wp-content/plugins/zehnerkreis"
+          wp plugin activate zehnerkreis --path="$WP_PATH"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the browser test tool in the runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/browser-tools" --no-save --package-lock=false --ignore-scripts --no-audit --fund=false playwright@1.65.1
+          google-chrome --version
+      - name: Start WordPress and run the actual browser flows
+        env:
+          WP_PATH: ${{ runner.temp }}/wordpress
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+          ZEHNERKREIS_TEST_URL: http://127.0.0.1:8080/zehnerkreis/
+        run: |
+          wp option update home http://127.0.0.1:8080 --path="$WP_PATH"
+          wp option update siteurl http://127.0.0.1:8080 --path="$WP_PATH"
+          wp rewrite structure '/%postname%/' --hard --path="$WP_PATH"
+          wp server --host=127.0.0.1 --port=8080 --path="$WP_PATH" > "$RUNNER_TEMP/wordpress-server.log" 2>&1 &
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$ZEHNERKREIS_TEST_URL" > /dev/null; then ready=1; break; fi
+            sleep 2
+          done
+          if [ "$ready" != 1 ]; then cat "$RUNNER_TEMP/wordpress-server.log"; exit 1; fi
+          node --test tests/browser.cjs
