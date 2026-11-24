@@ -52,7 +52,7 @@ jobs:
           wp core download --path="$WP_PATH"
           wp config create --path="$WP_PATH" --dbname=app_tests --dbuser=root --dbpass=wordpress --dbhost=127.0.0.1
           wp core install --path="$WP_PATH" --url=http://zehnerkreis.test --title='Zehnerkreis tests' --admin_user=admin --admin_password=ci-admin-password --admin_email=admin@example.invalid --skip-email
-          ln -s "$GITHUB_WORKSPACE" "$WP_PATH/wp-content/plugins/zehnerkreis"
+          cp -a "$GITHUB_WORKSPACE" "$WP_PATH/wp-content/plugins/zehnerkreis"
           wp plugin activate zehnerkreis --path="$WP_PATH"
       - uses: actions/setup-node@v4
         with:
