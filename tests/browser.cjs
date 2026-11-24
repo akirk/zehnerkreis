@@ -21,7 +21,7 @@ async function numbers(page, kind) {
 }
 
 test('banked and active-round scores survive a real page reload', async () => {
-    const browser = await chromium.launch();
+    const browser = await chromium.launch({ channel: 'chrome' });
     try {
         const page = await browser.newPage();
         await start(page);
@@ -42,7 +42,7 @@ test('banked and active-round scores survive a real page reload', async () => {
 });
 
 test('a wrong answer loses the round pot without erasing previously banked points', async () => {
-    const browser = await chromium.launch();
+    const browser = await chromium.launch({ channel: 'chrome' });
     try {
         const page = await browser.newPage();
         await start(page);

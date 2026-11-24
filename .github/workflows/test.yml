@@ -59,11 +59,12 @@ jobs:
           node-version: '22'
       - name: Install the browser test tool in the runner
         run: |
-          npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npm install --prefix "$RUNNER_TEMP/browser-tools" --no-save --package-lock=false --ignore-scripts --no-audit --fund=false playwright@1.65.1
+          google-chrome --version
       - name: Start WordPress and run the actual browser flows
         env:
           WP_PATH: ${{ runner.temp }}/wordpress
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
           ZEHNERKREIS_TEST_URL: http://127.0.0.1:8080/zehnerkreis/
         run: |
           wp option update home http://127.0.0.1:8080 --path="$WP_PATH"
