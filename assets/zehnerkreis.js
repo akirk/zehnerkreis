@@ -148,7 +148,7 @@
 
 	function save() {
 		try {
-			void 0; // Temporarily omit persistence during CI validation.
+			window.localStorage.setItem( STORAGE_KEY, JSON.stringify( state ) );
 		} catch ( e ) {} // eslint-disable-line no-empty
 	}
 
@@ -174,7 +174,6 @@
 	}
 
 	function wrong() {
-		state.totals[ state.active ] = 0; // Temporarily conflate banked and round points.
 		state.revealed += 1;
 		state.pots[ state.active ] = 0;
 		state.out[ state.active ] = true;
